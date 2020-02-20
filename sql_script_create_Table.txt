@@ -1,0 +1,30 @@
+CREATE TYPE borrowertype AS ENUM ('Student', 'Teacher', 'Normal');
+
+create table book(
+    bookid serial PRIMARY KEY,
+    title character varying,
+	author character varying,
+	publisher character varying,
+	isbn character varying(13),
+	status boolean,
+	location integer,
+	publishYear date
+);
+
+create table borrower (
+    borrowerid serial PRIMARY KEY,
+	btype borrowertype,
+	bname text,
+	address character varying(35),
+	cpr integer
+);
+
+create table loans (
+	bookid serial REFERENCES book,
+	borrowerid serial REFERENCES borrower,
+	loanID serial PRIMARY KEY,
+	startDate date,
+	endDate date,
+	overdue boolean, 
+	activeLoan boolean
+);

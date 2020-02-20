@@ -1,0 +1,8 @@
+INSERT INTO libraryschema.book (title,author,publisher,isbn,onLoan,location,publishyear)
+VALUES ('VINTER 2019','Klaus','BRIX','123-567-912-4',false,null,'2080-01-01');
+
+INSERT INTO libraryschema.borrower (btype,bname,address,cpr) 
+VALUES('Student','Magnus','Solbærvej 12',1002651227);
+
+INSERT INTO libraryschema.loans (bookid,borrowerid,startdate,enddate,overdue,activeloan)
+VALUES (4,4,'2020-01-15','2020-02-29',false,true);
