@@ -1,30 +1,36 @@
-CREATE TYPE borrowertype AS ENUM ('Student', 'Teacher', 'Normal');
-
-create table book(
+create table libraryschema.book(
     bookid serial PRIMARY KEY,
-    title character varying,
-	author character varying,
-	publisher character varying,
+    title varchar(99),
+	author varchar(99),
+	publisher varchar(99),
 	isbn character varying(13),
-	status boolean,
-	location integer,
+	numberofcopies int,
+	amountloaned int CHECK (numberofcopies >= amountloaned),
 	publishYear date
 );
 
-create table borrower (
-    borrowerid serial PRIMARY KEY,
-	btype borrowertype,
-	bname text,
-	address character varying(35),
-	cpr integer
+create table libraryschema.clienttype (
+	typeid serial PRIMARY KEY,
+	name varchar(30),
+	loanlength int,
+	loancapacity int
 );
 
-create table loans (
-	bookid serial REFERENCES book,
-	borrowerid serial REFERENCES borrower,
+create table libraryschema.client (
+    id serial PRIMARY KEY,
+	typeid int REFERENCES libraryschema.clienttype,
+	bname text,
+	address varchar(99),
+	cpr varchar(11),
+	loancount int
+);
+
+create table libraryschema.loans (
 	loanID serial PRIMARY KEY,
-	startDate date,
-	endDate date,
+	bookid serial REFERENCES book,
+	clientid serial REFERENCES libraryschema.client,
+	startDate date check (startDate < endDate),
+	endDate date check (endDate > startDate),
 	overdue boolean, 
 	activeLoan boolean
 );
