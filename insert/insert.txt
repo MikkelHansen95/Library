@@ -40,3 +40,12 @@ INSERT INTO libraryschema.bookinstance(
 	VALUES ('9788776011232', null, true);
 /*      LOANS     */
 /*      LOANS     */
+INSERT INTO "Library".loans(
+	instanceid, clientid, startdate, enddate, overdue, activeloan)
+	VALUES (3, 2, NOW(), '2020-02-26', false, true);
+INSERT INTO "Library".loans(
+	instanceid, clientid, startdate, enddate, overdue, activeloan)
+	VALUES (2, 2, NOW(), '2020-02-26', false, true);
+INSERT INTO "Library".loans(
+	instanceid, clientid, startdate, enddate, overdue, activeloan)
+	VALUES (1, 2, NOW(), '2020-02-26', false, true);
