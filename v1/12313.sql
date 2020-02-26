@@ -123,11 +123,8 @@ CREATE OR REPLACE FUNCTION returnbookfunc(loanid int, bookinst int) RETURNS void
 	END; 
 $$ LANGUAGE plpgsql;
 
-UPDATE loans SET activeloan = false WHERE id = 84;
 
 
- 	SELECT * FROM loans
-	  INNER JOIN client ON loans.clientid = client.id 
-	  INNER JOIN clienttype ON client.type = clienttype.id
-	  INNER JOIN bookinstance ON loans.instanceid = bookinstance.id
+
+
 

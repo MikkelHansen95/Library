@@ -77,7 +77,6 @@ INNER JOIN clienttype ON client.type = clienttype.id
 INNER JOIN bookinstance ON loans.instanceid = bookinstance.id
 WHERE loans.id = 83;
 
-
 CREATE OR REPLACE FUNCTION returnbook() RETURNS TRIGGER as $$
  DECLARE
 	loanid integer := NEW.id;
@@ -92,42 +91,32 @@ CREATE OR REPLACE FUNCTION returnbook() RETURNS TRIGGER as $$
 	  INNER JOIN clienttype ON client.type = clienttype.id
 	  INNER JOIN bookinstance ON loans.instanceid = bookinstance.id
 	  WHERE loans.id = loanid;
-	
 	IF (loanc > 0) THEN
 		UPDATE client SET loancount = loancount - 1 WHERE id = cid;
 		UPDATE bookinstance SET available = true, location = null WHERE id = loansbookid;
 	ELSE
 		RAISE EXCEPTION 'YOU DONT HAVE ANY LOANS';
 	END IF;
-	
 	IF lenddate < NOW() THEN
 		RAISE NOTICE 'YOU HAVE RETURNED THE BOOK TOO LATE';
 	END IF;
-	
 	IF aloan = true THEN
 		UPDATE loans SET activeloan = false WHERE id = loanid; 
 	END IF;
-	
    RETURN NEW;
  END;
 $$ LANGUAGE plpgsql;
+
+SET search_path TO libraryschema;
 
 CREATE TRIGGER bookreturn
 AFTER UPDATE ON loans
 FOR EACH ROW
 EXECUTE PROCEDURE returnbook();
 
-CREATE OR REPLACE FUNCTION returnbookfunc(loanid int, bookinst int) RETURNS void as $$
-	BEGIN
-	UPDATE loans SET activeloan = false WHERE id = loanid and instanceid = bookinst;
-	END; 
-$$ LANGUAGE plpgsql;
-
-UPDATE loans SET activeloan = false WHERE id = 84;
 
 
- 	SELECT * FROM loans
-	  INNER JOIN client ON loans.clientid = client.id 
-	  INNER JOIN clienttype ON client.type = clienttype.id
-	  INNER JOIN bookinstance ON loans.instanceid = bookinstance.id
+
+
+
 
