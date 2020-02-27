@@ -1,0 +1,29 @@
+INSERT INTO book (isbn,title,author,publisher,publishyear,type)
+VALUES (9781111111111,'Book 1', 'Karen','GYLDENDAL',NOW(),'Paperback');
+INSERT INTO book (isbn,title,author,publisher,publishyear,type)
+VALUES (9781111111112,'Book 2', 'Karen','GYLDENDAL',NOW(),'Paperback');
+INSERT INTO book (isbn,title,author,publisher,publishyear,type)
+VALUES (9781111111113,'Book 3', 'Karen','GYLDENDAL',NOW(),'Paperback');
+INSERT INTO book (isbn,title,author,publisher,publishyear,type)
+VALUES (9781111111114,'Book 4', 'Karen','GYLDENDAL',NOW(),'Paperback');
+INSERT INTO book (isbn,title,author,publisher,publishyear,type)
+VALUES (9781111111115,'Book 5', 'Karen','GYLDENDAL',NOW(),'Paperback');
+INSERT INTO book (isbn,title,author,publisher,publishyear,type)
+VALUES (9781111111116,'Book 6', 'Karen','GYLDENDAL',NOW(),'Paperback');
+INSERT INTO book (isbn,title,author,publisher,publishyear,type)
+VALUES (9781111111117,'Book 7', 'Karen','GYLDENDAL',NOW(),'Paperback');
+
+INSERT INTO bookinstance (isbn,location,available)
+VALUES (9781111111111,null,true);
+INSERT INTO bookinstance (isbn,location,available)
+VALUES (9781111111112,null,true);
+INSERT INTO bookinstance (isbn,location,available)
+VALUES (9781111111113,null,true);
+INSERT INTO bookinstance (isbn,location,available)
+VALUES (9781111111114,null,true);
+INSERT INTO bookinstance (isbn,location,available)
+VALUES (9781111111115,null,true);
+INSERT INTO bookinstance (isbn,location,available)
+VALUES (9781111111116,null,true);
+INSERT INTO bookinstance (isbn,location,available)
+VALUES (9781111111117,null,true);
