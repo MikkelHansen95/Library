@@ -1,5 +1,5 @@
 /* SET searchpath to schema */
-SET search_path TO libraryschema;
+SET search_path TO test1;
 /* CREATE TYPES */
 CREATE TYPE booktype as ENUM('Paperback','Ebook');
 /* CREATE TABLES */
@@ -39,95 +39,7 @@ create table loans (
 	overdue boolean check (endDate > NOW()) default false, 
 	activeLoan boolean default true
 );
-/* USERS + ROLE IN DB */
-CREATE ROLE Librarian;
-CREATE ROLE Customer;
-CREATE ROLE Visitor;
 
-CREATE USER Librarian1 LOGIN PASSWORD 'ostemad78';
-CREATE USER Customer1 LOGIN PASSWORD 'rejemad78';
-CREATE USER Visitor1 LOGIN PASSWORD 'laksemad78';
-
-GRANT CONNECT ON DATABASE "Library" TO Librarian;
-GRANT CONNECT ON DATABASE "Library" TO Customer;
-GRANT CONNECT ON DATABASE "Library" TO Visitor;
-
-GRANT USAGE ON SCHEMA "Library" TO Librarian;
-GRANT USAGE ON SCHEMA "Library" TO Customer;
-GRANT USAGE ON SCHEMA "Library" TO Visitor;
-
-GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA "Library" TO Librarian;
-GRANT SELECT ON TABLE book TO Visitor;
-GRANT SELECT ON TABLE book,bookinstance,loans TO Customer;
-
-GRANT UPDATE ON TABLE bookinstance TO Customer;
-GRANT INSERT,UPDATE ON TABLE loans TO Customer;
-GRANT UPDATE ON TABLE client TO Customer;
-
-GRANT Customer TO Customer1;
-GRANT Librarian TO Librarian1;
-GRANT Visitor TO Visitor1;
-/* BOOK */
-INSERT INTO book (isbn,title,author,publisher,publishyear,type)
-VALUES (9781111111111,'Book 1', 'Karen','GYLDENDAL',NOW(),'Paperback');
-INSERT INTO book (isbn,title,author,publisher,publishyear,type)
-VALUES (9781111111112,'Book 2', 'Karen','GYLDENDAL',NOW(),'Paperback');
-INSERT INTO book (isbn,title,author,publisher,publishyear,type)
-VALUES (9781111111113,'Book 3', 'Karen','GYLDENDAL',NOW(),'Paperback');
-INSERT INTO book (isbn,title,author,publisher,publishyear,type)
-VALUES (9781111111114,'Book 4', 'Karen','GYLDENDAL',NOW(),'Paperback');
-INSERT INTO book (isbn,title,author,publisher,publishyear,type)
-VALUES (9781111111115,'Book 5', 'Karen','GYLDENDAL',NOW(),'Paperback');
-INSERT INTO book (isbn,title,author,publisher,publishyear,type)
-VALUES (9781111111116,'Book 6', 'Karen','GYLDENDAL',NOW(),'Paperback');
-INSERT INTO book (isbn,title,author,publisher,publishyear,type)
-VALUES (9781111111117,'Book 7', 'Karen','GYLDENDAL',NOW(),'Paperback');
-INSERT INTO book(isbn, title, author, publisher, publishyear, type)
-VALUES ('9788776011232', '120 Fun Facts', 'Mikkel & Mathias', 'CPHBUSINESS', NOW(), 'Paperback');
-INSERT INTO book(isbn, title, author, publisher, publishyear, type)
-VALUES ('9788782031232', 'Databases for beginners', 'Mikkel & Mathias', 'CPHBUSINESS', NOW(), 'Paperback');
-INSERT INTO book(isbn, title, author, publisher, publishyear, type)
-VALUES ('9788782041232', 'Databases for beginners', 'Mikkel & Mathias', 'CPHBUSINESS', NOW(), 'Ebook');
-
-/*     CLIENTTYPE     */
-INSERT INTO libraryschema.clienttype(
-	name, loanlength, loancapacity)
-	VALUES ('Teacher', 21, 5);	
-INSERT INTO libraryschema.clienttype(
-	name, loanlength, loancapacity)
-	VALUES ('Student', 28, 3);	
-INSERT INTO libraryschema.clienttype(
-	name, loanlength, loancapacity)
-	VALUES ('Basic', 14, 2);
-
-/*     CLIENT     */
-INSERT INTO libraryschema.client(type, name, address, cpr)
-VALUES (1, 'Mikkel','Julemandens vej 12', '100591-1375');
-INSERT INTO libraryschema.client(type, name, address, cpr)
-VALUES (2, 'Karl','Kaninvej 62', '120971-1891');
-INSERT INTO libraryschema.client(type, name, address, cpr)
-VALUES (3, 'John','Fiskervej 3', '020177-9240');
-/*        BOOKINSTANCE         */
-INSERT INTO bookinstance(isbn, available)
-VALUES ('9788782031232', true);
-INSERT INTO bookinstance(isbn,  available)
-VALUES ('9788782041232',  true);
-INSERT INTO bookinstance(isbn,  available)
-VALUES ('9788776011232', true);
-INSERT INTO bookinstance (isbn,available)
-VALUES (9781111111111,true);
-INSERT INTO bookinstance (isbn,available)
-VALUES (9781111111112,true);
-INSERT INTO bookinstance (isbn,available)
-VALUES (9781111111113,true);
-INSERT INTO bookinstance (isbn,available)
-VALUES (9781111111114,true);
-INSERT INTO bookinstance (isbn,available)
-VALUES (9781111111115,true);
-INSERT INTO bookinstance (isbn,available)
-VALUES (9781111111116,true);
-INSERT INTO bookinstance (isbn,available)
-VALUES (9781111111117,true);
 /* FUNCTIONS */
 CREATE FUNCTION popularstudentbook (date, date)
  RETURNS TABLE( title varchar, amount bigint ) as
@@ -150,7 +62,7 @@ CREATE OR REPLACE FUNCTION getclientactiveloans(_clientid int) RETURNS integer a
 	DECLARE
 	 singleresult integer;
 	BEGIN
-	 SELECT count(*) into singleresult FROM bookinstance
+	 SELECT count(*) into singleresult FROM loans
 	  WHERE clientid = _clientid and activeloan = true;
 	  RETURN singleresult;
 	END; 
@@ -201,13 +113,7 @@ CREATE OR REPLACE FUNCTION getloanidfrombookandclient(_bookinstanceid int, _clie
 	END; 
 $$ LANGUAGE plpgsql;
 
-
-SELECT loans.id FROM loans
-	INNER JOIN bookinstance ON loans.instanceid = bookinstance.id
-	WHERE activeloan = true and bookinstance.id = 3;
-
 /* TRIGGER FUNCS */
-
 CREATE OR REPLACE FUNCTION updateusernadbookinstance() RETURNS TRIGGER as $$
  DECLARE
 	loanid integer := NEW.id;
@@ -215,7 +121,7 @@ CREATE OR REPLACE FUNCTION updateusernadbookinstance() RETURNS TRIGGER as $$
 	cid int := NEW.clientid;
 	loancap int;
 	bookinstanceid int := NEW.instanceid;
-	bookinstavailable boolean;
+	bookavailable boolean;
 	loanlength int;
  BEGIN
  	loanc := getclientactiveloans(cid);
@@ -263,7 +169,6 @@ FOR EACH ROW
 EXECUTE PROCEDURE createenddate();
 
 /* PROCEDURES */ 
-
 CREATE PROCEDURE insert_loan(bookinstance_id integer, client_id integer) LANGUAGE plpgsql AS $$
 	BEGIN
 		INSERT INTO loans (instanceid,clientid) VALUES (bookinstance_id,client_id);
@@ -280,14 +185,71 @@ CREATE PROCEDURE return_loan(_bookinstanceid integer,_clientid integer) LANGUAGE
 	 END;
 $$;
 
-/* INSERT WITH PROCEDURES */
+/* BOOK */
+INSERT INTO book (isbn,title,author,publisher,publishyear,type)
+VALUES (9781111111111,'Book 1', 'Karen','GYLDENDAL',NOW(),'Paperback');
+INSERT INTO book (isbn,title,author,publisher,publishyear,type)
+VALUES (9781111111112,'Book 2', 'Karen','GYLDENDAL',NOW(),'Paperback');
+INSERT INTO book (isbn,title,author,publisher,publishyear,type)
+VALUES (9781111111113,'Book 3', 'Karen','GYLDENDAL',NOW(),'Paperback');
+INSERT INTO book (isbn,title,author,publisher,publishyear,type)
+VALUES (9781111111114,'Book 4', 'Karen','GYLDENDAL',NOW(),'Paperback');
+INSERT INTO book (isbn,title,author,publisher,publishyear,type)
+VALUES (9781111111115,'Book 5', 'Karen','GYLDENDAL',NOW(),'Paperback');
+INSERT INTO book (isbn,title,author,publisher,publishyear,type)
+VALUES (9781111111116,'Book 6', 'Karen','GYLDENDAL',NOW(),'Paperback');
+INSERT INTO book (isbn,title,author,publisher,publishyear,type)
+VALUES (9781111111117,'Book 7', 'Karen','GYLDENDAL',NOW(),'Paperback');
+INSERT INTO book(isbn, title, author, publisher, publishyear, type)
+VALUES ('9788776011232', '120 Fun Facts', 'Mikkel & Mathias', 'CPHBUSINESS', NOW(), 'Paperback');
+INSERT INTO book(isbn, title, author, publisher, publishyear, type)
+VALUES ('9788782031232', 'Databases for beginners', 'Mikkel & Mathias', 'CPHBUSINESS', NOW(), 'Paperback');
+INSERT INTO book(isbn, title, author, publisher, publishyear, type)
+VALUES ('9788782041232', 'Databases for beginners', 'Mikkel & Mathias', 'CPHBUSINESS', NOW(), 'Ebook');
 
+/*     CLIENTTYPE     */
+INSERT INTO clienttype(name, loanlength, loancapacity)
+VALUES ('Teacher', 21, 5);	
+INSERT INTO clienttype(name, loanlength, loancapacity)
+VALUES ('Student', 28, 3);	
+INSERT INTO clienttype(name, loanlength, loancapacity)
+VALUES ('Basic', 14, 2);
+
+/*     CLIENT     */
+INSERT INTO client(type, name, address, cpr)
+VALUES (1, 'Mikkel','Julemandens vej 12', '100591-1375');
+INSERT INTO client(type, name, address, cpr)
+VALUES (2, 'Karl','Kaninvej 62', '120971-1891');
+INSERT INTO client(type, name, address, cpr)
+VALUES (3, 'John','Fiskervej 3', '020177-9240');
+/*        BOOKINSTANCE         */
+INSERT INTO bookinstance(isbn, available)
+VALUES ('9788782031232', true);
+INSERT INTO bookinstance(isbn,  available)
+VALUES ('9788782041232',  true);
+INSERT INTO bookinstance(isbn,  available)
+VALUES ('9788776011232', true);
+INSERT INTO bookinstance (isbn,available)
+VALUES (9781111111111,true);
+INSERT INTO bookinstance (isbn,available)
+VALUES (9781111111112,true);
+INSERT INTO bookinstance (isbn,available)
+VALUES (9781111111113,true);
+INSERT INTO bookinstance (isbn,available)
+VALUES (9781111111114,true);
+INSERT INTO bookinstance (isbn,available)
+VALUES (9781111111115,true);
+INSERT INTO bookinstance (isbn,available)
+VALUES (9781111111116,true);
+INSERT INTO bookinstance (isbn,available)
+VALUES (9781111111117,true);
+
+/* INSERT WITH PROCEDURES */
 CALL insert_loan(7,2);
 CALL insert_loan(6,2);
 CALL insert_loan(5,2);
 CALL insert_loan(4,2);
 CALL insert_loan(3,2);
-
 CALL return_loan(5,2);
 
 
