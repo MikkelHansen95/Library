@@ -22,13 +22,11 @@ create table client (
 	type int REFERENCES clienttype(id),
 	name text,
 	address varchar(99),
-	cpr varchar(11),
-	loancount int check (loancount > -1)
+	cpr varchar(11)
 );
 create table bookinstance(
 	id serial PRIMARY KEY NOT NULL, 
 	isbn bigint REFERENCES book(isbn),
-	location int REFERENCES client(id),
 	available boolean
 );
 
@@ -103,32 +101,32 @@ INSERT INTO libraryschema.clienttype(
 	VALUES ('Basic', 14, 2);
 
 /*     CLIENT     */
-INSERT INTO libraryschema.client(type, name, address, cpr, loancount)
-VALUES (1, 'Mikkel','Julemandens vej 12', '100591-1375', 0);
-INSERT INTO libraryschema.client(type, name, address, cpr, loancount)
-VALUES (2, 'Karl','Kaninvej 62', '120971-1891', 0);
-INSERT INTO libraryschema.client(type, name, address, cpr, loancount)
-VALUES (3, 'John','Fiskervej 3', '020177-9240', 0);
+INSERT INTO libraryschema.client(type, name, address, cpr)
+VALUES (1, 'Mikkel','Julemandens vej 12', '100591-1375');
+INSERT INTO libraryschema.client(type, name, address, cpr)
+VALUES (2, 'Karl','Kaninvej 62', '120971-1891');
+INSERT INTO libraryschema.client(type, name, address, cpr)
+VALUES (3, 'John','Fiskervej 3', '020177-9240');
 /*        BOOKINSTANCE         */
 INSERT INTO bookinstance(isbn, available)
 VALUES ('9788782031232', true);
-INSERT INTO bookinstance(isbn, location, available)
+INSERT INTO bookinstance(isbn,  available)
 VALUES ('9788782041232',  true);
-INSERT INTO bookinstance(isbn, location, available)
+INSERT INTO bookinstance(isbn,  available)
 VALUES ('9788776011232', true);
-INSERT INTO bookinstance (isbn,location,available)
+INSERT INTO bookinstance (isbn,available)
 VALUES (9781111111111,true);
-INSERT INTO bookinstance (isbn,location,available)
+INSERT INTO bookinstance (isbn,available)
 VALUES (9781111111112,true);
-INSERT INTO bookinstance (isbn,location,available)
+INSERT INTO bookinstance (isbn,available)
 VALUES (9781111111113,true);
-INSERT INTO bookinstance (isbn,location,available)
+INSERT INTO bookinstance (isbn,available)
 VALUES (9781111111114,true);
-INSERT INTO bookinstance (isbn,location,available)
+INSERT INTO bookinstance (isbn,available)
 VALUES (9781111111115,true);
-INSERT INTO bookinstance (isbn,location,available)
+INSERT INTO bookinstance (isbn,available)
 VALUES (9781111111116,true);
-INSERT INTO bookinstance (isbn,location,available)
+INSERT INTO bookinstance (isbn,available)
 VALUES (9781111111117,true);
 /* FUNCTIONS */
 CREATE FUNCTION popularstudentbook (date, date)
@@ -148,6 +146,16 @@ END;
 $BODY$
 LANGUAGE plpgsql;
 
+CREATE OR REPLACE FUNCTION getclientactiveloans(_clientid int) RETURNS integer as $$
+	DECLARE
+	 singleresult integer;
+	BEGIN
+	 SELECT count(*) into singleresult FROM bookinstance
+	  WHERE clientid = _clientid and activeloan = true;
+	  RETURN singleresult;
+	END; 
+$$ LANGUAGE plpgsql;
+
 CREATE OR REPLACE FUNCTION getclientloansize(loanid int) RETURNS integer as $$
 	DECLARE
 	 singleresult integer;
@@ -160,29 +168,68 @@ CREATE OR REPLACE FUNCTION getclientloansize(loanid int) RETURNS integer as $$
 	END; 
 $$ LANGUAGE plpgsql;
 
+CREATE OR REPLACE FUNCTION getclientloanlength(_clientid int) RETURNS integer as $$
+	DECLARE
+	 singleresult integer;
+	BEGIN
+	 SELECT clienttype.loanlength into singleresult FROM client
+	  INNER JOIN clienttype ON client.type = clienttype.id 
+	  WHERE client.id = _clientid;
+	  RETURN singleresult;
+	END; 
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION getbookavailability(_loanid int) RETURNS boolean as $$
+	DECLARE
+	 singleresult boolean;
+	BEGIN
+		SELECT bookinstance.available into singleresult FROM loans
+	  		INNER JOIN bookinstance ON loans.instanceid = bookinstance.id 
+	  		WHERE loans.id = _loanid;
+	  	RETURN singleresult;
+	END; 
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION getloanidfrombookandclient(_bookinstanceid int, _clientid int) RETURNS integer as $$
+	DECLARE
+	 singleresult integer;
+	BEGIN
+		SELECT loans.id into singleresult FROM loans
+			INNER JOIN bookinstance ON loans.instanceid = bookinstance.id
+			WHERE activeloan = true and bookinstance.id = _bookinstanceid;
+	  	RETURN singleresult;
+	END; 
+$$ LANGUAGE plpgsql;
+
+
+SELECT loans.id FROM loans
+	INNER JOIN bookinstance ON loans.instanceid = bookinstance.id
+	WHERE activeloan = true and bookinstance.id = 3;
+
 /* TRIGGER FUNCS */
 
 CREATE OR REPLACE FUNCTION updateusernadbookinstance() RETURNS TRIGGER as $$
  DECLARE
 	loanid integer := NEW.id;
 	loanc int;
-	cid int;
+	cid int := NEW.clientid;
 	loancap int;
-	loansbookid int;
+	bookinstanceid int := NEW.instanceid;
 	bookinstavailable boolean;
+	loanlength int;
  BEGIN
- 	SELECT client.loancount, clienttype.loancapacity, loans.instanceid, client.id, bookinstance.available into loanc,loancap,loansbookid,cid,bookinstavailable FROM loans
-	  INNER JOIN client ON loans.clientid = client.id 
-	  INNER JOIN clienttype ON client.type = clienttype.id
-	  INNER JOIN bookinstance ON loans.instanceid = bookinstance.id
-	  WHERE loans.id = loanid;
+ 	loanc := getclientactiveloans(cid);
+ 	loancap := getclientloansize(loanid);
+	loanlength := getclientloanlength(cid);
+	bookavailable := getbookavailability(loanid);
 	
-	IF bookinstavailable = false THEN
+	IF bookavailable = false THEN
 		RAISE EXCEPTION 'BOOK IS ALREADY ON LOAN';
 	END IF;
+	
 	IF loanc < loancap THEN
-		UPDATE client SET loancount = loancount + 1 WHERE id = cid;
-		UPDATE bookinstance SET available = false, location = cid WHERE id = loansbookid;
+		UPDATE bookinstance SET available = false WHERE id = bookinstanceid;
+		UPDATE loans SET enddate = NEW.startdate + loanlength WHERE id = loanid;
 	ELSE
 		RAISE EXCEPTION 'YOU HAVE TOO MANY BOOKS ON LOAN, YOU NEED TO RETURN ONE BEFORE YOU CAN BORROW AGAIN';
 	END IF;
@@ -214,3 +261,33 @@ CREATE TRIGGER enddatecreation
 AFTER INSERT ON loans
 FOR EACH ROW
 EXECUTE PROCEDURE createenddate();
+
+/* PROCEDURES */ 
+
+CREATE PROCEDURE insert_loan(bookinstance_id integer, client_id integer) LANGUAGE plpgsql AS $$
+	BEGIN
+		INSERT INTO loans (instanceid,clientid) VALUES (bookinstance_id,client_id);
+	END;
+$$;
+
+CREATE PROCEDURE return_loan(_bookinstanceid integer,_clientid integer) LANGUAGE plpgsql AS $$
+	 DECLARE
+	 	loanid int;
+	 BEGIN
+	 	loanid := getloanidfrombookandclient(_bookinstanceid,_clientid);
+	 	UPDATE loans SET activeloan = false where id = loanid;
+		UPDATE bookinstance SET available = true where id = _bookinstanceid;
+	 END;
+$$;
+
+/* INSERT WITH PROCEDURES */
+
+CALL insert_loan(7,2);
+CALL insert_loan(6,2);
+CALL insert_loan(5,2);
+CALL insert_loan(4,2);
+CALL insert_loan(3,2);
+
+CALL return_loan(5,2);
+
+
