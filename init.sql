@@ -1,6 +1,6 @@
 /* SET searchpath to schema */
-CREATE SCHEMA test2;
-SET search_path TO test2;
+CREATE SCHEMA libraryschema;
+SET search_path TO libraryschema;
 /* CREATE TYPES */
 CREATE TYPE booktype as ENUM('Paperback','Ebook');
 /* CREATE TABLES */
@@ -142,6 +142,17 @@ CREATE OR REPLACE FUNCTION getloanidfrombookandclient(_bookinstanceid int, _clie
 	END; 
 $$ LANGUAGE plpgsql;
 
+CREATE OR REPLACE FUNCTION getloanenddate(_loanid int) RETURNS date as $$
+	DECLARE
+	 singleresult date;
+	BEGIN
+		SELECT enddate into singleresult FROM loans WHERE id = _loanid;
+	  	RETURN singleresult;
+	END; 
+$$ LANGUAGE plpgsql;
+
+
+
 /* TRIGGER FUNCS */
 CREATE OR REPLACE FUNCTION updateusernadbookinstance() RETURNS TRIGGER as $$
  DECLARE
@@ -206,15 +217,22 @@ $$;
 
 CREATE PROCEDURE return_loan(_bookinstanceid integer,_clientid integer) LANGUAGE plpgsql AS $$
 	 DECLARE
-	 	loanid int := 0;
+	 	loanid int;
+		loanenddate date;
 	 BEGIN
 	 	loanid := getloanidfrombookandclient(_bookinstanceid,_clientid);
+		loanenddate := getloanenddate(loanid);
 		IF loanid IS NULL THEN
 			RAISE EXCEPTION 'BOOK ALREADY RETURNED';
 		END IF;
 		
 	 	UPDATE loans SET activeloan = false where id = loanid;
 		UPDATE bookinstance SET available = true where id = _bookinstanceid;
+		
+		IF loanenddate < NOW() THEN
+			RAISE NOTICE 'YOU HAVE RETURNED THE BOOK AFTER DEADLINE, YOU WILL GET A FINE';
+			UPDATE loans SET overdue = true WHERE id = loanid;
+		END IF;
 	 END;
 $$;
 
@@ -286,9 +304,5 @@ CALL insert_loan(3,2);
 
 /* return procedure */
 CALL return_loan(5,2);
-
-DELETE FROM loans where id = 8;
-
-select * from loans;
 
 
