@@ -14,7 +14,8 @@ ER Diagram:
 ## Programming the requested functionality in SQL    
 
 #### Bookavailability:  
-    You can see the requested functions and functionality in requestedfunctions.sql or view the body part of the code in the pictures below  
+    You can see the requested functions and functionality in requestedfunctions.sql 
+    or view the body part of the code in the pictures below  
 
 ![bookavailability](/images/bookavailability.PNG)  
 
