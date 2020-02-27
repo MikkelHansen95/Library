@@ -1,5 +1,6 @@
 /* SET searchpath to schema */
-SET search_path TO test1;
+CREATE SCHEMA test2;
+SET search_path TO test2;
 /* CREATE TYPES */
 CREATE TYPE booktype as ENUM('Paperback','Ebook');
 /* CREATE TABLES */
@@ -39,6 +40,34 @@ create table loans (
 	overdue boolean check (endDate > NOW()) default false, 
 	activeLoan boolean default true
 );
+/* USERS AND ROLES */
+CREATE ROLE Librarian;
+CREATE ROLE Customer;
+CREATE ROLE Visitor;
+
+CREATE USER Librarian1 LOGIN PASSWORD 'ostemad78';
+CREATE USER Customer1 LOGIN PASSWORD 'rejemad78';
+CREATE USER Visitor1 LOGIN PASSWORD 'laksemad78';
+
+GRANT CONNECT ON DATABASE "Library" TO Librarian;
+GRANT CONNECT ON DATABASE "Library" TO Customer;
+GRANT CONNECT ON DATABASE "Library" TO Visitor;
+
+GRANT USAGE ON SCHEMA "Library" TO Librarian;
+GRANT USAGE ON SCHEMA "Library" TO Customer;
+GRANT USAGE ON SCHEMA "Library" TO Visitor;
+
+GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA "Library" TO Librarian;
+GRANT SELECT ON TABLE book TO Visitor;
+GRANT SELECT ON TABLE book,bookinstance,loans TO Customer;
+
+GRANT UPDATE ON TABLE bookinstance TO Customer;
+GRANT INSERT,UPDATE ON TABLE loans TO Customer;
+GRANT UPDATE ON TABLE client TO Customer;
+
+GRANT Customer TO Customer1;
+GRANT Librarian TO Librarian1;
+GRANT Visitor TO Visitor1;
 
 /* FUNCTIONS */
 CREATE FUNCTION popularstudentbook (date, date)
@@ -177,9 +206,13 @@ $$;
 
 CREATE PROCEDURE return_loan(_bookinstanceid integer,_clientid integer) LANGUAGE plpgsql AS $$
 	 DECLARE
-	 	loanid int;
+	 	loanid int := 0;
 	 BEGIN
 	 	loanid := getloanidfrombookandclient(_bookinstanceid,_clientid);
+		IF loanid IS NULL THEN
+			RAISE EXCEPTION 'BOOK ALREADY RETURNED';
+		END IF;
+		
 	 	UPDATE loans SET activeloan = false where id = loanid;
 		UPDATE bookinstance SET available = true where id = _bookinstanceid;
 	 END;
@@ -250,6 +283,12 @@ CALL insert_loan(6,2);
 CALL insert_loan(5,2);
 CALL insert_loan(4,2);
 CALL insert_loan(3,2);
+
+/* return procedure */
 CALL return_loan(5,2);
+
+DELETE FROM loans where id = 8;
+
+select * from loans;
 
 
