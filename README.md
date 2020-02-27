@@ -1,7 +1,8 @@
 # Library
 
 ## How to start and get going:
-    So you have to load the script init.sql and run it. It runs the setup creates all functions, stored procedures, triggers etc. and uses insert loan and return loan procedures to test some functionality.
+    So you have to load the script init.sql and run it. It runs the setup creates all functions,
+    stored procedures, triggers etc. and uses insert_loan and return_loan procedures to test some functionality.
 
 ## Creating appropriate data model  
 
